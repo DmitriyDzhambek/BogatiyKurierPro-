@@ -1,8 +1,8 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
-title Богатый курьер Pro - Desktop Setup
+title Bogatiy Kurier Pro - Desktop Setup
 echo ============================================
-echo   Богатый курьер Pro - Desktop Setup
+echo   Bogatiy Kurier Pro - Desktop Setup
 echo ============================================
 echo.
 echo This script will build the app and create a desktop shortcut.

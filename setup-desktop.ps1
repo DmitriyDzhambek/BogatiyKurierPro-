@@ -1,6 +1,6 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
-  Setup script for "Богатый курьер Pro"
+  Setup script for Bogatiy Kurier Pro
   Builds the Electron app and creates a desktop shortcut on Windows 10/11.
   Run by right-clicking setup-desktop.bat and selecting "Run as administrator"
   or by executing setup-desktop.ps1 from PowerShell.
@@ -12,28 +12,24 @@ param(
 $ErrorActionPreference = 'Stop'
 $projectDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $desktopDir = [Environment]::GetFolderPath('Desktop')
-$shortcutName = 'Богатый курьер Pro.lnk'
+$appName = 'Bogatiy Kurier Pro'
+$shortcutName = "$appName.lnk"
 
 function Test-Command($cmd) {
   return [bool](Get-Command $cmd -ErrorAction SilentlyContinue)
 }
 
 function Find-UnpackedExe {
-  $candidates = @(
-    (Join-Path $projectDir 'dist-installer\win-unpacked\Богатый курьер Pro.exe'),
-    (Join-Path $projectDir 'dist-installer\win-unpacked\*.exe')
-  )
-  foreach ($c in $candidates) {
-    if ($c -like '*.exe' -and (Test-Path $c)) { return $c }
-    $found = Get-Item $c -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($found) { return $found.FullName }
-  }
+  $unpackedDir = Join-Path $projectDir 'dist-installer\win-unpacked'
+  if (-not (Test-Path $unpackedDir)) { return $null }
+  $exe = Get-ChildItem $unpackedDir -Filter '*.exe' | Select-Object -First 1
+  if ($exe) { return $exe.FullName }
   return $null
 }
 
 Set-Location $projectDir
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  Богатый курьер Pro - Desktop Setup" -ForegroundColor Cyan
+Write-Host "  $appName - Desktop Setup" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 
 # Check Node.js
@@ -79,7 +75,7 @@ $shortcut = $wshShell.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = $exePath
 $shortcut.WorkingDirectory = Split-Path -Parent $exePath
 $shortcut.IconLocation = "$exePath,0"
-$shortcut.Description = 'Богатый курьер Pro — JARVIS-style PC cleaner'
+$shortcut.Description = "$appName - JARVIS-style PC cleaner"
 $shortcut.Save()
 
 Write-Host "`n============================================" -ForegroundColor Green
