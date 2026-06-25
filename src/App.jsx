@@ -11,8 +11,12 @@ import {
   Loader2,
   Mic,
   MicOff,
+  Monitor,
+  QrCode,
+  RefreshCw,
   Send,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Volume2,
   Zap
@@ -28,6 +32,7 @@ const tabs = [
   { id: 'clean', label: 'Авто-очистка', icon: Eraser },
   { id: 'status', label: 'Статус системы', icon: Activity },
   { id: 'advice', label: 'Умные советы', icon: Lightbulb },
+  { id: 'devices', label: 'Устройства', icon: Smartphone },
   { id: 'notify', label: 'Уведомления', icon: Bell },
   { id: 'jarvis', label: 'JARVIS', icon: Bot }
 ];
@@ -320,6 +325,7 @@ export default function App() {
               {activeTab === 'clean' && <CleanTab runClean={runClean} cleanResult={cleanResult} />}
               {activeTab === 'status' && <StatusTab announceStatus={announceStatus} diskInfo={diskInfo} />}
               {activeTab === 'advice' && <AdviceTab getAdvice={getAdvice} advice={advice} />}
+              {activeTab === 'devices' && <DevicesTab />}
               {activeTab === 'notify' && <NotifyTab notify={notify} diskInfo={diskInfo} />}
               {activeTab === 'jarvis' && <JarvisTab startListening={startListening} isListening={isListening} executeCommand={executeCommand} />}
             </div>
@@ -424,6 +430,88 @@ function StatusTab({ announceStatus, diskInfo }) {
 
 function AdviceTab({ getAdvice, advice }) {
   return <div className="stack"><Cards action="Получить совет" onAction={getAdvice} cards={[["💡 Умные советы", 'Скажите “совет” — получите рекомендацию по очистке и оптимизации.']]} />{advice && <div className="advice-box">{stripHtml(advice.advice)}</div>}</div>;
+}
+
+function DevicesTab() {
+  const [deviceId] = useState(() => {
+    const stored = localStorage.getItem('bk-device-id');
+    if (stored) return stored;
+    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem('bk-device-id', id);
+    return id;
+  });
+  const [connected, setConnected] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('bk-connected-devices') || '[]'); }
+    catch { return []; }
+  });
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const appUrl = 'https://bogatiy-kurier-pro.vercel.app';
+  const pairCode = `${deviceId}:${btoa(deviceId).slice(0, 8)}`;
+
+  const copyLink = () => {
+    const text = `${appUrl}?pair=${encodeURIComponent(pairCode)}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    }
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const refreshDevices = () => {
+    try { setConnected(JSON.parse(localStorage.getItem('bk-connected-devices') || '[]')); }
+    catch { setConnected([]); }
+  };
+
+  const removeDevice = (id) => {
+    const next = connected.filter((d) => d.id !== id);
+    setConnected(next);
+    localStorage.setItem('bk-connected-devices', JSON.stringify(next));
+  };
+
+  return (
+    <div className="devices-tab stack">
+      <div className="device-hero black-panel">
+        <QrCode size={72} />
+        <h4>Подключить устройство</h4>
+        <p>Отсканируйте QR-код в Mini app или отправьте ссылку для синхронизации.</p>
+        <div className="pair-code">{pairCode}</div>
+        <button className="black-button gold action" onClick={copyLink}>
+          {linkCopied ? <CheckCircle2 size={18} /> : <Smartphone size={18} />}
+          {linkCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+        </button>
+      </div>
+
+      <div className="device-list-header">
+        <h4>Список ваших устройств</h4>
+        <button className="black-button small" onClick={refreshDevices}><RefreshCw size={16} /> Обновить</button>
+      </div>
+
+      <div className="device-list">
+        <div className="device-item black-panel">
+          <Monitor size={32} />
+          <div>
+            <strong>Этот компьютер</strong>
+            <span>{deviceId}</span>
+          </div>
+          <b className="active">Активно</b>
+        </div>
+        {connected.length === 0 && (
+          <div className="device-empty black-panel">Пока нет подключенных устройств. Нажмите «Скопировать ссылку» и откройте её на телефоне.</div>
+        )}
+        {connected.map((device) => (
+          <div className="device-item black-panel" key={device.id}>
+            <Smartphone size={32} />
+            <div>
+              <strong>{device.name || 'Telephone'}</strong>
+              <span>{device.id}</span>
+            </div>
+            <button className="black-button small danger" onClick={() => removeDevice(device.id)}>Отключить</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function NotifyTab({ notify, diskInfo }) {
