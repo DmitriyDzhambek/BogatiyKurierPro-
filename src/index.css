@@ -120,3 +120,66 @@ h1 { font-size: 42px; } h1 span { color: #fff0b6; } h2 { font-size: 48px; } h3 {
   .cards-grid, .home-grid { grid-template-columns: 1fr; }
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+@media (max-width: 768px) {
+  .layout { gap: 10px; padding: 10px; }
+  .panel { border-radius: 20px; }
+  .topbar { flex-direction: column; align-items: flex-start; gap: 10px; min-height: auto; padding: 12px 14px; border-radius: 20px; }
+  .top-actions { width: 100%; justify-content: space-between; }
+  .brand-seal { width: 42px; height: 42px; border-radius: 14px; }
+  .brand-seal svg { width: 22px; height: 22px; }
+  h1 { font-size: 26px; } h2 { font-size: 26px; } h3 { font-size: 22px; }
+  .overline { font-size: 9px; letter-spacing: .24em; }
+  .status-badge { padding: 9px 12px; font-size: 13px; }
+  .black-button.small { padding: 9px 12px; font-size: 13px; }
+
+  .main-grid { display: flex; flex-direction: column; grid-template-columns: none; gap: 10px; min-height: 0; }
+  .sidebar { order: 0; padding: 10px; }
+  .side-title { display: none; }
+  .tabs { flex-direction: row; flex-wrap: nowrap; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+  .tabs::-webkit-scrollbar { height: 3px; }
+  .tabs::-webkit-scrollbar-thumb { background: rgba(244,210,122,.36); border-radius: 999px; }
+  .tab-button { flex-direction: column; gap: 4px; min-width: 68px; padding: 8px 6px; border-radius: 14px; }
+  .tab-button svg { width: 18px; height: 18px; }
+  .tab-button span { font-size: 9px; font-weight: 700; }
+  .quick-card { display: none; }
+
+  .content-panel { order: 1; padding: 14px; overflow: visible; }
+  .section-head { margin-bottom: 12px; }
+  .tab-content { height: auto; min-height: 0; overflow: visible; }
+  .chat-panel { display: none; }
+
+  .home-grid { grid-template-columns: 1fr; gap: 10px; }
+  .hero-card, .disk-card { padding: 16px; border-radius: 20px; }
+  .hero-card h3 { font-size: 24px; }
+  .hero-card p:not(.overline) { font-size: 14px; line-height: 1.55; }
+  .hero-actions { margin-top: 16px; }
+  .black-button { padding: 11px 14px; font-size: 13px; }
+  .disk-card strong { font-size: 32px; }
+  .disk-card p { margin-top: 12px; }
+
+  .cards-grid { grid-template-columns: 1fr; gap: 10px; }
+  .feature-card { min-height: auto; padding: 14px; border-radius: 18px; }
+  .feature-card h4 { font-size: 16px; }
+  .feature-card p { font-size: 13px; line-height: 1.5; }
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .metric { padding: 12px; border-radius: 16px; }
+  .metric strong { font-size: 20px; }
+  .metric span { font-size: 10px; }
+  .advice-box { padding: 16px; font-size: 16px; }
+
+  .jarvis-tab { grid-template-columns: 1fr; gap: 16px; }
+  .jarvis-orb { height: 220px; }
+  .jarvis-orb button { width: 100px; height: 100px; }
+  .jarvis-orb svg { width: 40px; height: 40px; }
+  .jarvis-commands button { padding: 14px; font-size: 14px; }
+
+  .toast { width: calc(100% - 20px); bottom: 12px; padding: 14px; border-radius: 16px; }
+}
+
+@media (max-width: 380px) {
+  h1 { font-size: 22px; } h2 { font-size: 22px; }
+  .tab-button { min-width: 60px; padding: 7px 4px; }
+  .tab-button span { font-size: 8px; }
+  .metrics { grid-template-columns: 1fr; }
+}
