@@ -1,6 +1,14 @@
 node_modules/
 app-data/
 dist-react/
+dist-installer/
+*.log
+.DS_Store
+.vercel
+node_modules/
+app-data/
+dist-react/
 *.log
 .DS_Store
 node_modules
+.vercel
