@@ -1,0 +1,25 @@
+{
+  "name": "bogatyi-kurier-pro",
+  "version": "1.0.0",
+  "description": "Богатый курьер Pro — JARVIS-style PC cleaner",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "vite",
+    "electron": "electron .",
+    "start": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron\"",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.1.2",
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.7",
+    "lucide-react": "^0.468.0",
+    "vite": "^7.3.0",
+    "wait-on": "^9.0.3",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1"
+  },
+  "devDependencies": {}
+}
