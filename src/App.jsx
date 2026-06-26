@@ -5,6 +5,7 @@ import {
   Bot,
   Brain,
   CheckCircle2,
+  Coffee,
   Eraser,
   HardDrive,
   Lightbulb,
@@ -33,8 +34,19 @@ const tabs = [
   { id: 'status', label: 'Статус системы', icon: Activity },
   { id: 'advice', label: 'Умные советы', icon: Lightbulb },
   { id: 'devices', label: 'Устройства', icon: Smartphone },
+  { id: 'tips', label: 'Чаевые', icon: Coffee },
   { id: 'notify', label: 'Уведомления', icon: Bell },
   { id: 'jarvis', label: 'JARVIS', icon: Bot }
+];
+
+const wheelTabs = [
+  { id: 'clean', label: 'Очистка', icon: Eraser },
+  { id: 'analysis', label: 'Анализ', icon: Brain },
+  { id: 'status', label: 'Статус', icon: Activity },
+  { id: 'advice', label: 'Совет', icon: Lightbulb },
+  { id: 'devices', label: 'Устройства', icon: Smartphone },
+  { id: 'tips', label: 'Чаевые', icon: Coffee },
+  { id: 'voice', label: 'Голос', icon: Mic }
 ];
 
 const quickCommands = ['очисти', 'статус', 'совет', 'анализ'];
@@ -44,7 +56,24 @@ function stripHtml(text) {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const remoteParams = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('remote') !== 'true') return null;
+    return {
+      host: params.get('host') || '',
+      port: Number(params.get('port')) || 0,
+      deviceId: params.get('deviceId') || ''
+    };
+  }, []);
+
+  if (remoteParams) {
+    return <RemoteControl host={remoteParams.host} port={remoteParams.port} deviceId={remoteParams.deviceId} />;
+  }
+
+  const [activeTab, setActiveTab] = useState('jarvis');
+  const [wheelRotation, setWheelRotation] = useState(0);
+  const [animating, setAnimating] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
@@ -252,6 +281,23 @@ export default function App() {
 
   const active = tabs.find((tab) => tab.id === activeTab) || tabs[0];
 
+  const selectSegment = (id, index) => {
+    if (animating) return;
+    const anglePerSegment = 360 / wheelTabs.length;
+    const targetRotation = -index * anglePerSegment;
+    setAnimating(true);
+    setWheelRotation(targetRotation);
+    window.setTimeout(() => {
+      setActiveTab(id);
+      setAnimating(false);
+      if (id === 'clean') runClean();
+      else if (id === 'analysis') runAnalysis();
+      else if (id === 'status') announceStatus();
+      else if (id === 'advice') getAdvice();
+      else if (id === 'voice') startListening();
+    }, 900);
+  };
+
   return (
     <div className="app-shell">
       <div className="background-image" />
@@ -284,21 +330,15 @@ export default function App() {
           </div>
         </header>
 
-        <main className="main-grid">
+        <main className="main-grid jarvis-main">
           <aside className="panel black-panel sidebar">
-            <p className="overline side-title">рабочие вкладки</p>
+            <p className="overline side-title">меню</p>
             <nav className="tabs">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button key={tab.id} className={`tab-button ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
-                    <Icon size={20} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+              <button className="tab-button active">
+                <Bot size={20} />
+                <span>JARVIS</span>
+              </button>
             </nav>
-
             <div className="quick-card">
               <p>Голосовые команды</p>
               <div>
@@ -309,26 +349,29 @@ export default function App() {
             </div>
           </aside>
 
-          <section className="panel content-panel">
-            <div className="section-head">
-              <div>
-                <p className="overline">{active.label}</p>
-                <h2>{activeTab === 'home' ? 'Отдыхайте — мы всё сделаем' : active.label}</h2>
+          <section className="panel content-panel jarvis-panel">
+            <div className="jarvis-stage">
+              <RadialMenu
+                tabs={wheelTabs}
+                rotation={wheelRotation}
+                activeTab={activeTab}
+                onSelect={selectSegment}
+                isListening={isListening}
+                startListening={startListening}
+              />
+              <div className="jarvis-bottom-text">
+                <p className="overline">JARVIS активен</p>
+                <h2>Отдыхайте — мы всё сделаем</h2>
               </div>
-              {isBusy && <Loader2 className="spin" size={30} />}
             </div>
 
-            <div className="tab-content">
-              {activeTab === 'home' && <HomeTab startListening={startListening} runAnalysis={runAnalysis} runClean={runClean} diskInfo={diskInfo} />}
-              {activeTab === 'voice' && <VoiceTab startListening={startListening} isListening={isListening} speechSupported={speechSupported} voiceEnabled={voiceEnabled} />}
-              {activeTab === 'analysis' && <AnalysisTab runAnalysis={runAnalysis} analysis={analysis} />}
-              {activeTab === 'clean' && <CleanTab runClean={runClean} cleanResult={cleanResult} />}
-              {activeTab === 'status' && <StatusTab announceStatus={announceStatus} diskInfo={diskInfo} />}
-              {activeTab === 'advice' && <AdviceTab getAdvice={getAdvice} advice={advice} />}
-              {activeTab === 'devices' && <DevicesTab />}
-              {activeTab === 'notify' && <NotifyTab notify={notify} diskInfo={diskInfo} />}
-              {activeTab === 'jarvis' && <JarvisTab startListening={startListening} isListening={isListening} executeCommand={executeCommand} />}
-            </div>
+            {(activeTab === 'devices' || activeTab === 'tips') && (
+              <div className="jarvis-overlay">
+                <button className="black-button small overlay-close" onClick={() => setActiveTab('jarvis')}>Закрыть</button>
+                {activeTab === 'devices' && <DevicesTab />}
+                {activeTab === 'tips' && <TipsTab />}
+              </div>
+            )}
           </section>
 
           <aside className="panel black-panel chat-panel">
@@ -374,6 +417,65 @@ export default function App() {
 
 function StatusBadge({ label }) {
   return <div className="status-badge"><span />{label}</div>;
+}
+
+function RadialMenu({ tabs, rotation, activeTab, onSelect, isListening, startListening }) {
+  const count = tabs.length;
+  const radius = 220;
+  const anglePerSegment = 360 / count;
+  const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
+
+  return (
+    <div className="radial-menu">
+      <svg className="wheel-rays" viewBox="0 0 600 600">
+        <circle cx="300" cy="300" r="220" fill="none" stroke="rgba(244,210,122,.18)" strokeWidth="1" />
+        <circle cx="300" cy="300" r="160" fill="none" stroke="rgba(244,210,122,.1)" strokeWidth="1" strokeDasharray="8 8" />
+        {tabs.map((_, index) => {
+          const angle = (index * anglePerSegment - 90) * Math.PI / 180;
+          const x2 = 300 + Math.cos(angle) * 220;
+          const y2 = 300 + Math.sin(angle) * 220;
+          return <line key={index} x1="300" y1="300" x2={x2} y2={y2} stroke="rgba(244,210,122,.16)" strokeWidth="1" />;
+        })}
+      </svg>
+
+      <div className="wheel" style={{ transform: `rotate(${rotation}deg)` }}>
+        {tabs.map((tab, index) => {
+          const Icon = tab.icon;
+          const angle = index * anglePerSegment - 90;
+          const rad = angle * Math.PI / 180;
+          const x = Math.cos(rad) * radius;
+          const y = Math.sin(rad) * radius;
+          const isActive = activeIndex === index;
+          return (
+            <button
+              key={tab.id}
+              className={`wheel-segment ${isActive ? 'active' : ''}`}
+              style={{
+                '--tx': `${x}px`,
+                '--ty': `${y}px`,
+                '--r': `${-rotation}deg`
+              }}
+              onClick={() => onSelect(tab.id, index)}
+              title={tab.label}
+            >
+              <Icon size={28} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+
+        <button className={`wheel-center ${isListening ? 'listening' : ''}`} onClick={startListening}>
+          <Bot size={42} />
+          <span className="center-glow" />
+        </button>
+      </div>
+
+      <div className="wheel-hint">
+        <p className="overline">Выберите сектор</p>
+        <p>Кликните по руне, чтобы вращать судьбу</p>
+      </div>
+    </div>
+  );
 }
 
 function HomeTab({ startListening, runAnalysis, runClean, diskInfo }) {
@@ -433,40 +535,37 @@ function AdviceTab({ getAdvice, advice }) {
 }
 
 function DevicesTab() {
-  const [deviceId] = useState(() => {
-    const stored = localStorage.getItem('bk-device-id');
-    if (stored) return stored;
-    const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-    localStorage.setItem('bk-device-id', id);
-    return id;
-  });
-  const [connected, setConnected] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('bk-connected-devices') || '[]'); }
-    catch { return []; }
-  });
+  const [remoteInfo, setRemoteInfo] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const appUrl = 'https://bogatiy-kurier-pro.vercel.app';
-  const pairCode = `${deviceId}:${btoa(deviceId).slice(0, 8)}`;
+  useEffect(() => {
+    if (!ipcRenderer) return;
+    ipcRenderer.invoke('get-remote-info').then((info) => setRemoteInfo(info)).catch(() => setRemoteInfo(null));
+  }, []);
+
+  const deviceId = remoteInfo?.deviceId || '';
+  const appUrl = remoteInfo?.url || 'https://bogatiy-kurier-pro.vercel.app';
 
   const copyLink = () => {
-    const text = `${appUrl}?pair=${encodeURIComponent(pairCode)}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text);
+    if (navigator.clipboard && appUrl) {
+      navigator.clipboard.writeText(appUrl);
     }
     setLinkCopied(true);
     window.setTimeout(() => setLinkCopied(false), 2000);
   };
 
-  const refreshDevices = () => {
-    try { setConnected(JSON.parse(localStorage.getItem('bk-connected-devices') || '[]')); }
-    catch { setConnected([]); }
-  };
-
-  const removeDevice = (id) => {
-    const next = connected.filter((d) => d.id !== id);
-    setConnected(next);
-    localStorage.setItem('bk-connected-devices', JSON.stringify(next));
+  const testConnection = async () => {
+    if (!remoteInfo) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`http://${remoteInfo.localIp}:${remoteInfo.port}/status`, { method: 'GET' });
+      await res.json();
+      alert('Связь с компьютером есть. Можно управлять через Mini app.');
+    } catch (err) {
+      alert('Не удалось связаться с компьютером. Убедитесь, что телефон и ПК в одной Wi-Fi сети.');
+    }
+    setLoading(false);
   };
 
   return (
@@ -474,17 +573,26 @@ function DevicesTab() {
       <div className="device-hero black-panel">
         <QrCode size={72} />
         <h4>Подключить устройство</h4>
-        <p>Отсканируйте QR-код в Mini app или отправьте ссылку для синхронизации.</p>
-        <div className="pair-code">{pairCode}</div>
-        <button className="black-button gold action" onClick={copyLink}>
-          {linkCopied ? <CheckCircle2 size={18} /> : <Smartphone size={18} />}
-          {linkCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
-        </button>
+        <p>Отсканируйте QR-код в Mini app или отправьте ссылку для синхронизации. Телефон и компьютер должны быть в одной Wi-Fi сети.</p>
+        {remoteInfo ? (
+          <>
+            <div className="pair-code">{remoteInfo.localIp}:{remoteInfo.port}</div>
+            <button className="black-button gold action" onClick={copyLink}>
+              {linkCopied ? <CheckCircle2 size={18} /> : <Smartphone size={18} />}
+              {linkCopied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+            </button>
+            <button className="black-button small" onClick={testConnection} disabled={loading}>
+              {loading ? <Loader2 className="spin" size={16} /> : <RefreshCw size={16} />}
+              Проверить связь
+            </button>
+          </>
+        ) : (
+          <div className="device-empty black-panel">Удаленное управление доступно только в приложении для ПК.</div>
+        )}
       </div>
 
       <div className="device-list-header">
         <h4>Список ваших устройств</h4>
-        <button className="black-button small" onClick={refreshDevices}><RefreshCw size={16} /> Обновить</button>
       </div>
 
       <div className="device-list">
@@ -492,24 +600,154 @@ function DevicesTab() {
           <Monitor size={32} />
           <div>
             <strong>Этот компьютер</strong>
-            <span>{deviceId}</span>
+            <span>{deviceId || 'Ожидание запуска приложения...'}</span>
           </div>
           <b className="active">Активно</b>
         </div>
-        {connected.length === 0 && (
-          <div className="device-empty black-panel">Пока нет подключенных устройств. Нажмите «Скопировать ссылку» и откройте её на телефоне.</div>
-        )}
-        {connected.map((device) => (
-          <div className="device-item black-panel" key={device.id}>
-            <Smartphone size={32} />
-            <div>
-              <strong>{device.name || 'Telephone'}</strong>
-              <span>{device.id}</span>
-            </div>
-            <button className="black-button small danger" onClick={() => removeDevice(device.id)}>Отключить</button>
-          </div>
-        ))}
       </div>
+    </div>
+  );
+}
+
+function TipsTab() {
+  return (
+    <div className="tips-tab stack">
+      <div className="tips-hero black-panel">
+        <Coffee size={72} />
+        <h4>Поддержать автора</h4>
+        <p>Если программа вам помогает, вы можете поблагодарить автора чаевыми на кофе или новые идеи. Любая поддержка мотивирует добавлять новые функции.</p>
+        <a className="tips-button" href="https://tips.yandex.ru/guest/payment/5485470" target="_blank" rel="noreferrer">
+          <Coffee size={20} />
+          Отправить чаевые
+        </a>
+      </div>
+
+      <div className="cards-wrap">
+        <div className="cards-grid">
+          <div className="feature-card black-panel">
+            <h4>☕ На кофе</h4>
+            <p>Помогает поддерживать энергию во время разработки новых функций.</p>
+          </div>
+          <div className="feature-card black-panel">
+            <h4>💡 Новые идеи</h4>
+            <p>Ваши идеи превращаются в новые вкладки, инструменты и улучшения.</p>
+          </div>
+          <div className="feature-card black-panel">
+            <h4>🙏 Спасибо</h4>
+            <p>Даже небольшая сумма — большая мотивация продолжать совершенствовать приложение.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RemoteControl({ host, port, deviceId }) {
+  const [connected, setConnected] = useState(false);
+  const [disk, setDisk] = useState(null);
+  const [lastResult, setLastResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const baseUrl = `http://${host}:${port}`;
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${baseUrl}/status`, { method: 'GET' });
+      const data = await res.json();
+      setDisk(data.disk);
+      setConnected(true);
+      setError('');
+    } catch (err) {
+      setConnected(false);
+      setError('Нет связи с компьютером. Проверьте Wi-Fi и что приложение запущено.');
+    }
+  }, [baseUrl]);
+
+  const sendCommand = async (command) => {
+    setBusy(true);
+    setLastResult(null);
+    try {
+      const res = await fetch(`${baseUrl}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setLastResult(data);
+        if (data.result?.disk) setDisk(data.result.disk);
+      } else {
+        setError(data.error || 'Ошибка команды');
+      }
+    } catch (err) {
+      setError('Не удалось выполнить команду. Проверьте связь.');
+    }
+    setBusy(false);
+  };
+
+  useEffect(() => {
+    fetchStatus();
+    const timer = window.setInterval(fetchStatus, 5000);
+    return () => window.clearInterval(timer);
+  }, [fetchStatus]);
+
+  return (
+    <div className="layout remote-layout">
+      <section className="panel black-panel remote-panel">
+        <div className="tab-title">
+          <div>
+            <span className="overline">УДАЛЕННОЕ УПРАВЛЕНИЕ</span>
+            <h2>Управление ПК</h2>
+          </div>
+          <div className={`status-dot ${connected ? 'ok' : 'bad'}`} />
+        </div>
+
+        {error && <div className="remote-error">{error}</div>}
+
+        <div className="metrics">
+          <div className="metric black-panel"><span>Свободно</span><strong>{disk?.free || '--'}</strong></div>
+          <div className="metric black-panel"><span>Всего</span><strong>{disk?.total || '--'}</strong></div>
+          <div className="metric black-panel"><span>Свободно %</span><strong>{disk ? `${disk.freePercent}%` : '--'}</strong></div>
+        </div>
+
+        <div className="remote-actions">
+          <button className="black-button gold action" onClick={() => sendCommand('analyze')} disabled={busy || !connected}>Анализ файлов</button>
+          <button className="black-button danger action" onClick={() => sendCommand('clean')} disabled={busy || !connected}>Очистить ПК</button>
+          <button className="black-button action" onClick={() => sendCommand('status')} disabled={busy || !connected}>Обновить статус</button>
+          <button className="black-button action" onClick={() => sendCommand('advice')} disabled={busy || !connected}>Совет</button>
+        </div>
+
+        {busy && <div className="remote-busy"><Loader2 className="spin" size={28} /> Выполняется команда...</div>}
+
+        {lastResult?.action === 'analyze' && lastResult.result && (
+          <div className="remote-result black-panel">
+            <h4>Результат анализа</h4>
+            <p>Найдено мусора: <b>{lastResult.result.formatted}</b></p>
+            <p>Время: {lastResult.result.scanTime}</p>
+          </div>
+        )}
+
+        {lastResult?.action === 'clean' && lastResult.result && (
+          <div className="remote-result black-panel">
+            <h4>Результат очистки</h4>
+            <p>Освобождено: <b>{lastResult.result.formatted}</b></p>
+            <p>Зон очищено: {lastResult.result.itemCount}</p>
+            <p>Время: {lastResult.result.scanTime}</p>
+          </div>
+        )}
+
+        {lastResult?.action === 'advice' && lastResult.result && (
+          <div className="remote-result black-panel">
+            <h4>Совет</h4>
+            <p>{lastResult.result.advice}</p>
+          </div>
+        )}
+
+        <div className="remote-footer">
+          <span>Устройство: {deviceId || host}</span>
+        </div>
+      </section>
     </div>
   );
 }
